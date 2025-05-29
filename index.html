@@ -1,0 +1,134 @@
+<!-- file: index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Classifier</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 {
+            color: #7a65fc;
+            margin-bottom: 20px;
+        }
+        #uploadButton {
+            background-color: #7a65fc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #uploadButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        #imagePreview {
+            margin-top: 20px;
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Classifier</h1>
+        <input type="file" id="imageInput" accept="image/*" disabled>
+        <button id="uploadButton" onclick="classifyImage()" disabled>Classify</button>
+        <img id="imagePreview" src="#" alt="Image Preview">
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // URL to the Teachable Machine model
+        const modelURL = 'https://teachablemachine.withgoogle.com/models/OKK8bJn8t/';
+
+        let model, maxPredictions;
+
+        // Load the image model and setup the classifier
+        async function init() {
+            const modelURLFull = modelURL + 'model.json';
+            const metadataURL = modelURL + 'metadata.json';
+
+            // Load the model and metadata
+            model = await tmImage.load(modelURLFull, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            // Enable the file input and button
+            document.getElementById('imageInput').disabled = false;
+            document.getElementById('uploadButton').disabled = false;
+        }
+
+        // Show image preview when a file is selected
+        function showImagePreview(event) {
+            const imagePreview = document.getElementById('imagePreview');
+            const file = event.target.files[0];
+            if (file) {
+                imagePreview.src = URL.createObjectURL(file);
+                imagePreview.style.display = 'block';
+            }
+        }
+
+        // Classify the uploaded image
+        async function classifyImage() {
+            const imageInput = document.getElementById('imageInput');
+            if (imageInput.files && imageInput.files[0]) {
+                const file = imageInput.files[0];
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = async () => {
+                    const prediction = await model.predict(img);
+                    let resultText = '';
+
+                    // Map predictions to "DOG" and "CAT"
+                    prediction.forEach(pred => {
+                        if (pred.className === "DOGS") {
+                            resultText += `DOGS: ${(pred.probability * 100).toFixed(2)}%<br>`;
+                        } else if (pred.className === "CATS") {
+                            resultText += `CATS: ${(pred.probability * 100).toFixed(2)}%<br>`;
+                        }
+                    });
+
+                    document.getElementById('result').innerHTML = resultText;
+                };
+            }
+        }
+
+        // Initialize the model
+        init();
+
+        // Add event listener for image input
+        document.getElementById('imageInput').addEventListener('change', showImagePreview);
+    </script>
+</body>
+</html>
